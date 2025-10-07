@@ -1,0 +1,5 @@
+# Ignore dataset and checkpoints
+data/
+*.wav
+*.DS_Store
+.ipynb_checkpoints/
