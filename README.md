@@ -14,8 +14,8 @@ The project is divided into two main phases:
 - Implemented end-to-end CNN training on the **Speech Commands Dataset v0.02**
 - Preprocessed data with **MFCC features**, normalized for better stability
 - Used **Adam optimizer** with a **StepLR scheduler**
-- Trained for 30 epochs, achieving:
-  - **Training Accuracy:** ~100%
+- Trained for 10 epochs, achieving:
+  - **Training Accuracy:** ~98%
   - **Validation Accuracy:** ~85%
   - **Test Accuracy:** ~85%
 - Model saved as `baseline_cnn_kws_vfinal.pt`
