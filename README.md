@@ -63,7 +63,6 @@ The project is divided into two main phases:
 - [ ] Prepare slides + demonstration video (optional)
 
 ---
-=======
-# CS-576-Final-Project
+
 
 
