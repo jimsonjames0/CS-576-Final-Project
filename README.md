@@ -127,17 +127,14 @@ Data and results are organized in a Pandas DataFrame for reproducibility and eas
 
 ```
 Neuromorphic-KWS/
-│
-├── data/                          # Speech Commands dataset (subset)
-├── models/
+│                        # Speech Commands dataset (subset)
+├── saved_models/
 │   ├── baseline_cnn_kws_vfinal.pt # Trained CNN weights
 │   └── snn_kws_model.pt           # Converted SNN (optional)
-├── notebooks/
+├── snn_conversion/
 │   └── kws_cnn_to_snn.ipynb       # Full training + conversion notebook
-├── results/
-│   ├── energy_vs_accuracy.png
-│   ├── efficiency_vs_beta.png
-│   └── snn_metrics.csv
+├── baseline_cnn/
+│   └── cnn.ipynb
 └── README.md
 ```
 
