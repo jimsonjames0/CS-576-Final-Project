@@ -101,7 +101,7 @@ The baseline SNN is trained **from scratch** using snnTorch, instead of being pu
 - Accuracy is much lower than the CNN because:
   - Training SNNs with surrogate gradients is harder.
   - MFCC features are tuned for dense ANNs, not necessarily optimal for spiking rate codes.
-  - The architecture and hyperparameters were not aggressively tuned for SNN performance (which is a good discussion point in the report).
+  - The architecture and hyperparameters were not aggressively tuned for SNN performance.
 
 ---
 
@@ -182,7 +182,7 @@ Similarly, the final SNN’s 64-unit FC representation is mapped to a LIF ensemb
 Loihi classifier accuracy is lower because:
 
 1. The Loihi model uses **rate-coded static inputs** rather than full temporal spiking dynamics.
-2. Mapping FC weights onto LIF neurons introduces additional constraints and quantization effects.
+2. Mapping FC weights onto LIF neurons introduces additional synapse constraints and quantization effects.
 3. Only the **final classifier head** is emulated, not the entire deep spiking network.
 
 ---
