@@ -2,15 +2,22 @@
 
 ## Project Overview
 
-This project implements a complete Keyword Spotting (KWS) pipeline designed for low-power, neuromorphic edge computing.  
-The objective is to train a conventional deep learning model for speech command recognition, convert it to a Spiking Neural Network (SNN), and evaluate it using an Intel Loihi–compatible neuromorphic emulator.
+This project implements a complete Keyword Spotting (KWS) pipeline designed for low-power, neuromorphic edge computing.
+
+The objective is to:
+
+- Train a conventional deep learning model for speech command recognition (CNN).
+- Build and train a Spiking Neural Network (SNN) using snnTorch.
+- Run both models through an Intel Loihi–compatible neuromorphic emulator using Nengo / Nengo-Loihi.
+- Compare accuracy and spike-based “energy-style” behavior across ANN, SNN, and Loihi-style classifiers.
 
 The end-to-end workflow includes:
 
 1. Baseline CNN training on MFCC features  
-2. SNN conversion using snnTorch  
-3. Loihi-based neuromorphic emulation using Nengo and Nengo-Loihi  
-4. Accuracy and energy-style comparisons between ANN, SNN, and Loihi models
+2. Baseline SNN training using snnTorch  
+3. SNN conversion experiments (ANN → SNN)  
+4. Loihi-style neuromorphic emulation using Nengo and Nengo-Loihi  
+5. Accuracy and spike-based comparisons between CNN, SNN, and Loihi classifiers  
 
 This repository provides a reproducible implementation of all stages.
 
@@ -18,186 +25,249 @@ This repository provides a reproducible implementation of all stages.
 
 ## Phase 1: Baseline CNN (Completed)
 
-The baseline model is a conventional Convolutional Neural Network trained on a subset of the Google Speech Commands v0.02 dataset. It reaches strog accuracy and serves as the foundation for SNN conversion and Loihi emulation.
+The baseline model is a conventional Convolutional Neural Network trained on a subset of the Google Speech Commands v0.02 dataset. It reaches strong accuracy and serves as the foundation for SNN work and Loihi emulation.
 
-**Dataset classes**  
-`yes`, `no`, `go`, `stop`, `up`, `down`
+### Dataset Classes
 
-**Feature extraction**  
-Mel-Frequency Cepstral Coefficients (MFCC), normalized per sample.
+Targeted 6-class subset:
 
-**Model architecture**
-- Conv2D + ReLU + MaxPool  
-- Conv2D + ReLU + MaxPool  
-- Fully connected layers (64 → 6)
+- `yes`, `no`, `go`, `stop`, `up`, `down`
 
-**Training details**
-- Optimizer: Adam  
-- Scheduler: StepLR  
-- Epochs: 10
+### Feature Extraction
 
-**Final CNN Performance (Full Test Set)**
-| Metric | Result |
-|--------|--------|
-| Training Accuracy | ~98% |
-| Validation Accuracy | ~85% |
-| Test Accuracy (Full Dataset) | ~80-85% |
-| Test Accuracy (Loihi Evaluation Subset, 50 samples) | ~44% |
+- Mel-Frequency Cepstral Coefficients (**MFCC**), 40 coefficients
+- Per-sample normalization to zero mean and unit variance
 
-**Saved model**  
-`saved_models/baseline_cnn_kws_vfinal.pt`
+### Model Architecture
+
+- Conv2D → ReLU → MaxPool  
+- Conv2D → ReLU → MaxPool  
+- Fully connected layers: `flatten → 64 → 6`
+
+### Training Details
+
+- Optimizer: **Adam**
+- Scheduler: **StepLR**
+- Epochs: **10**
+- Loss: Cross-Entropy
+
+### Final CNN Performance (Full Test Set)
+
+| Metric                                     | Result      |
+|--------------------------------------------|-------------|
+| Training Accuracy                          | ~98%        |
+| Validation Accuracy                        | ~85%        |
+| **Test Accuracy (Full Dataset)**           | ~80–85%     |
+| **Test Accuracy (Loihi Eval Subset, 50 samples)** | ~44% |
+
+**Saved model**
+
+- `saved_models/baseline_cnn_kws_vfinal.pt`
 
 **Notes**
-1. The drop from 85% -> 44% occurs because the Loihi evaluation was performed on a random 50-sample subset, not the whole test set
-2. The CNN still significantly outperforms the SNN and Loihi classifier
+
+- The drop from ~85% → 44% occurs because the Loihi evaluation was performed on a **random 50-sample subset**, not the entire test set.
+- The CNN still significantly outperforms both the SNN and Loihi classifiers in terms of raw accuracy.
 
 ---
 
 ## Phase 2: Baseline SNN (Completed)
 
-The SNN is trained from sratch using snnTorch.
+The baseline SNN is trained **from scratch** using snnTorch, instead of being purely converted from the CNN. It uses a similar convolutional structure but replaces ReLU with spiking neurons and unrolls computation over time.
 
-**Final SNN Training Results**
-| Metric | Result |
-|--------|--------|
-| Test Loss | 1.793 |
-| Training Accuracy | ~15-16% |
-| Spike Count (per batch) | ~643,272 total spikes |
-| Layer 1 Spikes | 523,184 |
-| Layer 2 Spikes | 119,926 |
-| Layer 3 Spikes | 162 |
+### SNN Architecture (High-Level)
 
-**Notes**
-1. The SNN fires very sparsely in deeper layers, which reflects expected SNN behavior
-2. The accuracy is lower than the CNN beuaes training SNNs is harder and MFCCs are rate-based features optimized for ANNs 
+- Conv2D → LIF → MaxPool  
+- Conv2D → LIF → MaxPool  
+- Fully connected layer → LIF → output layer  
+- Temporal unrolling with `num_steps` time steps (e.g., 8)
+
+### Final SNN Training Results
+
+*(evaluated on the same 6-class KWS task)*
+
+| Metric                        | Result                       |
+|-------------------------------|------------------------------|
+| Test Loss                     | **1.793**                    |
+| **Test Accuracy (Full Test Set)** | **~15–16%** (near-random for 6 classes) |
+| Spike Count (per batch)       | **~643,272 total spikes**    |
+| Layer 1 spikes                | 523,184                      |
+| Layer 2 spikes                | 119,926                      |
+| Layer 3 spikes                | 162                          |
+
+### Notes
+
+- The SNN fires **densely in earlier convolutional layers** and **very sparsely in deeper layers**, which matches expected SNN behavior.
+- Accuracy is much lower than the CNN because:
+  - Training SNNs with surrogate gradients is harder.
+  - MFCC features are tuned for dense ANNs, not necessarily optimal for spiking rate codes.
+  - The architecture and hyperparameters were not aggressively tuned for SNN performance (which is a good discussion point in the report).
 
 ---
 
-## Phase 3: SNN Conversion (Completed)
+## Phase 3: SNN Conversion Experiments (Completed)
 
-The trained CNN is converted into a spiking model using snnTorch.
+In addition to the baseline SNN trained from scratch, the project includes **ANN → SNN conversion experiments** using snnTorch.
 
-Key modifications:
-- ReLU replaced by Leaky-Integrate-and-Fire (LIF) neurons  
-- Surrogate gradient (fast sigmoid) for backprop-compatible spiking  
-- Rate coding used for temporal spike generation  
-- Weights copied directly from the baseline CNN  
-- Multi-timestep inference (T = 10–100)
+Key modifications for converted SNN experiments:
 
-**SNN parameters**
-- β ∈ {0.90, 0.95, 0.97, 0.99}  
-- Timesteps ∈ {10, 25, 50, 75, 100}
+- Replace ReLU activations with **Leaky-Integrate-and-Fire (LIF)** neurons.
+- Use a **surrogate gradient** (fast sigmoid) for backpropagation through spikes.
+- Use **rate coding** over multiple time steps to represent activations as spike trains.
+- Copy weights from the baseline CNN where applicable.
+- Run multi-timestep inference with different temporal horizons.
 
-**Saved model**  
-`saved_models/snn_kws_beta0.95_T50.pt`
+Typical SNN hyperparameters explored:
+
+- β (membrane decay): {0.90, 0.95, 0.97, 0.99}  
+- Timesteps: {10, 25, 50, 75, 100}
+
+**Saved example converted model**
+
+- `saved_models/snn_kws_beta0.95_T50.pt`
+
+These experiments are documented in:
+
+- `snn_conversion/SNN_Conversion.ipynb`
+- `snn_conversion/SNN_Conversion.pdf`
 
 ---
 
 ## Phase 4: Loihi-Compatible CNN Emulation (Completed)
 
-Using Nengo and Nengo-Loihi, the final SNN head is executed on a Loihi-style emulator:
+Using **Nengo** and **Nengo-Loihi**, the final CNN’s 64-dimensional feature representation is used to drive a small spiking classifier network running on a Loihi-style emulator.
 
-- Converts CNN features into a 64-dimensional rate-coded input  
-- Runs these features through a LIF-based classifier on the Loihi backend  
-- Transfers classification weights directly from the CNN  
-- Evaluates temporal spike outputs to obtain final logits  
-- Supports full dataset evaluation via DataLoader
+### Setup
 
-**Outcome**
-- Functional Loihi emulation of the classification head  
-- Demonstrated spike-driven inference using a neuromorphic backend  
-- Accuracy observed is lower than CNN baseline, but consistent with event-driven spiking behavior
+- Convert CNN output features (from the penultimate layer, 64-D) into a **rate-coded input** for a Nengo network.
+- Build a LIF ensemble with 64 neurons in Nengo:
+  - Input: 64-D feature vector.
+  - Neuron model: `nengo.LIF()`.
+- Connect the ensemble to an output node with a learned linear transform using the CNN’s final FC weights.
+
+### What Runs on the Loihi Emulator
+
+- The **classification head** is emulated:
+  - 64-D input → spiking LIF ensemble → 6-class readout.
+- The emulator uses `nengo_loihi.Simulator` (or `nengo.Simulator` with Loihi-like settings depending on environment constraints).
+
+### Outcome
+
+- Functional Loihi emulation of the CNN classification head.
+- Demonstrates **spike-driven inference** on a neuromorphic backend.
+- Accuracy is lower than the pure CNN baseline but consistent with:
+  - Rate-coded, spiking LIF readout.
+  - No further fine-tuning of weights on the Loihi architecture.
+
+**Loihi CNN Classifier Results (50-sample subset)**
+
+- CNN head accuracy (PyTorch, same subset): **44%**
+- Loihi CNN classifier accuracy: **20%**
 
 ---
 
 ## Phase 5: Loihi-Compatible SNN Emulation (Completed)
 
-Using Nengo and Nengo-Loihi, the final SNN's 64-unit FC head is mapped to a LIF ensemble and evaluated on Loihi-like neuromorphic hardware emulator.
+Similarly, the final SNN’s 64-unit FC representation is mapped to a LIF ensemble and evaluated on a Loihi-style neuromorphic emulator.
 
-**Final Loihi SNN Classifier Performance (50-sample Eval)**
+### Final Loihi SNN Classifier Performance (50-sample eval)
 
-| Model | Accuracy |
-|--------|-----------|
-| SNN (PyTorch Forward Pass) | 24% |
-| SNN Loihi Emulated Classifier | 14% |
+| Model                          | Accuracy |
+|--------------------------------|----------|
+| **SNN (PyTorch forward pass, subset)** | **24%**   |
+| **SNN Loihi-emulated classifier**      | **14%**   |
 
-**Notes**
-1. Loihi classifier accuracy is lower because:
-   a. The Loihi model uses rate-coded static inputs (not temporal spikes)
-   b. Mapping weights to Loihi LIF neurons introduce synapse constraints and quantization
-   c. Only the final classifier head is emulated, not the full SNN
+### Notes
+
+Loihi classifier accuracy is lower because:
+
+1. The Loihi model uses **rate-coded static inputs** rather than full temporal spiking dynamics.
+2. Mapping FC weights onto LIF neurons introduces additional constraints and quantization effects.
+3. Only the **final classifier head** is emulated, not the entire deep spiking network.
+
 ---
 
-
-## Phase 6: Final Comaprison ANN vs SNN vs Loihi Evaluation (Completed)
+## Phase 6: Final Comparison — ANN vs SNN vs Loihi (Completed)
 
 A dedicated comparative pipeline evaluates:
 
-1. ANN (CNN) accuracy  
-2. SNN (converted model) spike-driven accuracy  
-3. Loihi emulated accuracy  
-4. Energy-style proxy metrics based on spike counts
+- ANN (CNN) accuracy
+- SNN (from-scratch model) accuracy and spike statistics
+- Loihi-emulated classifier accuracy (CNN-driven and SNN-driven)
+- Energy-style proxies based on **spike counts**
 
-**Example preliminary results**  
-(50 random samples, demonstration only)
+### Summary Comparison
 
-| Model | Accuracy (Full Dataset) | Accuracy (Loihi Evaluation Subset) | Notes | 
-|--------|-----------|-----------|-----------|
-| CNN (Baseline) | ~80-85% | 44% | Strongest Baseline |
-| SNN (PyTorch) | 16% | 24% (Subset) | Much lower accuracy but highly sparse |
-| Loihi CNN -> SNN Classifier | - | 20% | Uses CNN features & Loihi LIF ensemble |
-| Loihi SNN Classifier | - | 14% | Hardest challenge: spike -> rate mapping |
+*(50 random samples for Loihi eval subset; full test set where available)*
 
-More detailed experiments may improve this result through:
-- Parameter tuning  
-- Additional normalization steps  
-- Alternative coding schemes  
+| Model                    | Accuracy (Full Dataset) | Accuracy (Loihi Eval Subset) | Notes                                               |
+|--------------------------|-------------------------|-------------------------------|-----------------------------------------------------|
+| **CNN (Baseline)**       | ~80–85%                | **44%**                       | Strongest baseline                                 |
+| **SNN (PyTorch)**        | ~16%                   | **24%** (subset)              | Much lower accuracy but highly sparse              |
+| **Loihi CNN Classifier** | —                      | **20%**                       | CNN features + LIF ensemble on Loihi-style backend |
+| **Loihi SNN Classifier** | —                      | **14%**                       | Hardest case: SNN features → Loihi LIF readout     |
+
+More detailed experiments could improve these results via:
+
+- Hyperparameter tuning (β, timesteps, learning rate)
+- Additional normalization steps
+- Alternative coding schemes (TTFS, phase coding, etc.)
 
 ---
 
 ## Energy Proxy (Spike-Based Efficiency)
-Spiking neural networks trade accuracy for potential energy efficiency.
 
-SNN Spike Summary:
-1. Total mspikes in 1 batch: ~643k
-2. But spikes are:
-   a. large in ealy convolution layers (input-driven)
-   b. extremely sprase in deeper layers (162 spikes in layer 3)
-3. Proves that neuromorphic computing is good at:
-   a. early feature extraction -> dense
-   b. later layers -> sparse computation
-     
+Spiking neural networks trade off some accuracy for potentially lower energy, thanks to sparse event-driven computation.
+
+### SNN Spike Summary
+
+- Total spikes in 1 batch (on test data): **~643k**
+- Spike distribution:
+  - **High activity** in early convolution layers (input-driven)
+  - **Very sparse** activity in deeper layers (e.g., only 162 spikes in layer 3)
+
+This qualitatively supports a core neuromorphic idea:
+
+- Early feature extraction → denser activity  
+- Later decision layers → highly sparse activity
+
+---
+
 ## Environment and Requirements
 
-Major dependencies:
+### Major Dependencies
 
-| Library | Version |
-|---------|---------|
-| PyTorch | 2.8.0+ |
-| snnTorch | 0.9.1 |
-| torchaudio | 2.8.0+ |
-| Nengo | 4.x |
-| Nengo-Loihi | 1.x |
-| NumPy | 1.26+ |
-| tqdm | Latest |
+| Library       | Version (example) |
+|--------------|-------------------|
+| PyTorch      | 2.x (CPU/GPU)     |
+| snnTorch     | 0.9.x             |
+| torchaudio   | 2.x               |
+| Nengo        | 4.x               |
+| Nengo-Loihi  | 1.x               |
+| NumPy        | 1.26.x            |
+| soundfile    | Latest            |
+| tqdm         | Latest            |
 
-The project runs on:
-- Google Colab (T4 GPU)  
-- macOS (M1/M2/M3/M5)  
-- Local virtual environments (Conda recommended)
+### Recommended Environments
+
+- Google Colab (T4 GPU)
+- macOS (M1/M2/etc.) with Conda
+- Local Linux / WSL2 with Conda virtual environment
 
 ---
 
 ## Completed Checklist
 
-- Baseline CNN trained successfully  
-- CNN saved and reproducible  
-- SNN conversion implemented using snnTorch  
-- Temporal rate coding for spike generation  
-- Loihi-compatible emulator implemented using Nengo  
-- Evaluation pipeline for CNN vs Loihi created  
-- Repository cleaned to exclude large datasets  
-- Comparative notebook completed  
+- ✅ Baseline CNN trained successfully  
+- ✅ CNN checkpoint saved and reproducible  
+- ✅ Baseline SNN trained from scratch using snnTorch  
+- ✅ ANN → SNN conversion experiments implemented  
+- ✅ Temporal rate coding used for spike generation  
+- ✅ Loihi-compatible CNN classifier implemented using Nengo / Nengo-Loihi  
+- ✅ Loihi-compatible SNN classifier implemented  
+- ✅ Evaluation pipeline for CNN vs SNN vs Loihi created  
+- ✅ Repository cleaned to exclude large raw datasets  
+- ✅ Comparative notebook and plots completed  
 
 ---
 
@@ -205,27 +275,28 @@ The project runs on:
 
 Potential extensions:
 
-- Fine-tuning SNN with backprop-through-time  
-- Exploring temporal coding strategies (TTFS, phase coding)  
-- Deployment on real Intel Loihi hardware if available  
-- Expanding dataset to include more spoken commands  
-- Investigating latency-accuracy trade-offs  
-- Adding noise robustness evaluation  
+- Fine-tuning SNN with full backprop-through-time (BPTT)
+- Exploring temporal coding strategies (TTFS, phase coding, population codes)
+- Deploying on real Intel Loihi hardware (if available)
+- Expanding the number of spoken commands and background noise conditions
+- Studying latency–accuracy trade-offs for real-time KWS
+- Evaluating robustness under noisy or adversarial audio conditions
 
 ---
 
 ## Summary
 
-This project demonstrates a complete end-to-end neuromorphic keyword spotting pipline:
-1. A high-accuracy Convolutional Neural Network reaches ~80–85% accuracy on SpeechCommands and serves as the ANN baseline
-2. A spiking neural network (snnTorch) is trained from scratch using surrogate gradients and achieves ~16% accuracy, with sparse spike activity aligned with neuromorphic computation principles
-3. Both the CNN and SNN classification heads are executed on an Intel Loihi–compatible emulator using Nengo and Nengo-Loihi
-   a. CNN → Loihi classifier accuracy: 20%
-   b. SNN → Loihi classifier accuracy: 14%
-4. An evaluation framework compares accuracy, spikes, and performance across ANN, SNN, and neuromorphic Loihi models
-   
-This illustrates the core trade-off in neuromorphic computing:
-lower accuracy but significantly sparser computation, enabling theoretical energy gains. 
+This project demonstrates a **complete end-to-end neuromorphic keyword spotting pipeline**:
 
-The system leverages conventional training, spiking conversion, and Loihi emulation to explore accuracy, spike activity, and energy-style behavior.  
-The modular pipeline enables further extensions including improved coding strategies, backprop-trained SNNs, and real-hardware deployment on Intel Loihi 1/2.
+- A high-accuracy CNN reaches **~80–85%** accuracy on the SpeechCommands subset and serves as the ANN baseline.
+- A spiking neural network (snnTorch) trained from scratch achieves **~16%** accuracy, with spike activity patterns that match neuromorphic expectations (dense early, sparse late).
+- Both CNN and SNN classification heads are executed on an Intel Loihi–compatible emulator using Nengo and Nengo-Loihi:
+  - CNN → Loihi classifier accuracy: **20%**  
+  - SNN → Loihi classifier accuracy: **14%**
+- An evaluation framework compares accuracy, spike counts, and neuromorphic behavior across ANN, SNN, and Loihi-style models.
+
+This illustrates the central trade-off in neuromorphic computing:
+
+> **Lower accuracy but significantly sparser, event-driven computation, enabling potential energy savings.**
+
+The system leverages conventional training, spiking conversion, and Loihi emulation to explore accuracy–energy trade-offs and provides a modular foundation for future work in neuromorphic keyword spotting and low-power SNN design.
