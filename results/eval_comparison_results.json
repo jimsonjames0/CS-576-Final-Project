@@ -1,0 +1,26 @@
+[
+  {
+    "model":"CNN",
+    "dataset":"test_full_6classes",
+    "accuracy":0.3707918039,
+    "notes":"End-to-end MFCC \u2192 CNN"
+  },
+  {
+    "model":"SNN (beta=0.95, T=50)",
+    "dataset":"test_full_6classes",
+    "accuracy":0.3284424862,
+    "notes":"Converted from CNN with snnTorch"
+  },
+  {
+    "model":"CNN",
+    "dataset":"test_subset_50",
+    "accuracy":0.44,
+    "notes":"Same subset as Loihi evaluation"
+  },
+  {
+    "model":"Loihi emulator",
+    "dataset":"test_subset_50",
+    "accuracy":0.16,
+    "notes":"64\u21926 LIF classifier, sim_time=0.1s"
+  }
+]

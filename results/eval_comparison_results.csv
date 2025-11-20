@@ -1,0 +1,5 @@
+model,dataset,accuracy,notes
+CNN,test_full_6classes,0.3707918039098259,End-to-end MFCC → CNN
+"SNN (beta=0.95, T=50)",test_full_6classes,0.32844248620438893,Converted from CNN with snnTorch
+CNN,test_subset_50,0.44,Same subset as Loihi evaluation
+Loihi emulator,test_subset_50,0.16,"64→6 LIF classifier, sim_time=0.1s"

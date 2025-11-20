@@ -3,3 +3,7 @@ data/
 *.wav
 *.DS_Store
 .ipynb_checkpoints/
+sample_data/
+*.tar
+*.wav
+*.zip
