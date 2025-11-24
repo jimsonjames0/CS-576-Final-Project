@@ -23,7 +23,7 @@ This repository provides a reproducible implementation of all stages.
 
 ---
 
-## Phase 1: Baseline CNN (Completed)
+## Phase 1: Baseline CNN
 
 The baseline model is a conventional Convolutional Neural Network trained on a subset of the Google Speech Commands v0.02 dataset. It reaches strong accuracy and serves as the foundation for SNN work and Loihi emulation.
 
