@@ -71,7 +71,7 @@ Targeted 6-class subset:
 
 ---
 
-## Phase 2: Baseline SNN (Completed)
+## Phase 2: Baseline SNN
 
 The baseline SNN is trained **from scratch** using snnTorch, instead of being purely converted from the CNN. It uses a similar convolutional structure but replaces ReLU with spiking neurons and unrolls computation over time.
 
@@ -105,7 +105,7 @@ The baseline SNN is trained **from scratch** using snnTorch, instead of being pu
 
 ---
 
-## Phase 3: SNN Conversion Experiments (Completed)
+## Phase 3: SNN Conversion Experiments  
 
 In addition to the baseline SNN trained from scratch, the project includes **ANN → SNN conversion experiments** using snnTorch.
 
@@ -133,7 +133,7 @@ These experiments are documented in:
 
 ---
 
-## Phase 4: Loihi-Compatible CNN Emulation (Completed)
+## Phase 4: Loihi-Compatible CNN Emulation  
 
 Using **Nengo** and **Nengo-Loihi**, the final CNN’s 64-dimensional feature representation is used to drive a small spiking classifier network running on a Loihi-style emulator.
 
@@ -166,7 +166,7 @@ Using **Nengo** and **Nengo-Loihi**, the final CNN’s 64-dimensional feature re
 
 ---
 
-## Phase 5: Loihi-Compatible SNN Emulation (Completed)
+## Phase 5: Loihi-Compatible SNN Emulation  
 
 Similarly, the final SNN’s 64-unit FC representation is mapped to a LIF ensemble and evaluated on a Loihi-style neuromorphic emulator.
 
@@ -187,7 +187,7 @@ Loihi classifier accuracy is lower because:
 
 ---
 
-## Phase 6: Final Comparison — ANN vs SNN vs Loihi (Completed)
+## Phase 6: Final Comparison — ANN vs SNN vs Loihi  
 
 A dedicated comparative pipeline evaluates:
 
@@ -258,16 +258,16 @@ This qualitatively supports a core neuromorphic idea:
 
 ## Completed Checklist
 
-- ✅ Baseline CNN trained successfully  
-- ✅ CNN checkpoint saved and reproducible  
-- ✅ Baseline SNN trained from scratch using snnTorch  
-- ✅ ANN → SNN conversion experiments implemented  
-- ✅ Temporal rate coding used for spike generation  
-- ✅ Loihi-compatible CNN classifier implemented using Nengo / Nengo-Loihi  
-- ✅ Loihi-compatible SNN classifier implemented  
-- ✅ Evaluation pipeline for CNN vs SNN vs Loihi created  
-- ✅ Repository cleaned to exclude large raw datasets  
-- ✅ Comparative notebook and plots completed  
+- Baseline CNN trained successfully  
+- CNN checkpoint saved and reproducible  
+- Baseline SNN trained from scratch using snnTorch  
+- ANN → SNN conversion experiments implemented  
+- Temporal rate coding used for spike generation  
+- Loihi-compatible CNN classifier implemented using Nengo / Nengo-Loihi  
+- Loihi-compatible SNN classifier implemented  
+- Evaluation pipeline for CNN vs SNN vs Loihi created  
+- Repository cleaned to exclude large raw datasets  
+- Comparative notebook and plots completed  
 
 ---
 
